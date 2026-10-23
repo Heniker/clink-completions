@@ -85,8 +85,18 @@ local function delayinit(argmatcher)
     else
         if help_command == "" then
             help_command = "help"
+            forwards.run(argmatcher, help_command)
+        else
+            -- Prefer `cargo <sub> --help` over `cargo help <sub>` for subcommands.
+            -- `cargo help <sub>` opens a man page pager that blocks io.popen forever,
+            -- while `cargo <sub> --help` prints plain text and exits immediately.
+            local sub = help_command:match("^help%s+(.+)$")
+            if sub then
+                forwards.run(argmatcher, help_command, { help_command=sub.." --help" })
+            else
+                forwards.run(argmatcher, help_command)
+            end
         end
-        forwards.run(argmatcher, help_command)
     end
 
     if debug and debug.debug_nodelay then
